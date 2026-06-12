@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EU Dairy Cycle Monitor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#14181d;          /* deep slate base */
+    --surface:#1b2027;      /* panel */
+    --surface-2:#222931;    /* raised panel */
+    --hair:#2b333d;         /* hairline */
+    --milk:#f2eee4;         /* warm off-white text */
+    --milk-dim:#cdcabf;
+    --muted:#8b95a1;        /* secondary text */
+    --muted-2:#5e6770;
+    /* diverging signal scale: cold = oversupply/bearish, warm = recovery/bullish */
+    --s-cold:#4a7a9b;       /* -2 oversupply */
+    --s-cool:#5b9b9a;       /* -1 */
+    --s-mid:#b8923c;        /*  0 turning (amber) */
+    --s-warm:#c98a44;       /* +1 */
+    --s-hot:#c9683a;        /* +2 recovery */
+    --radius:4px;
+    --maxw:980px;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0;background:var(--ink);color:var(--milk);
+    font-family:"Inter",system-ui,sans-serif;line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:32px 20px 80px}
+  .mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+  .disp{font-family:"Space Grotesk",sans-serif}
+
+  /* ---- header ---- */
+  .eyebrow{
+    font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.22em;
+    text-transform:uppercase;color:var(--muted);margin:0 0 14px
+  }
+  h1{
+    font-family:"Space Grotesk",sans-serif;font-weight:600;
+    font-size:clamp(28px,5vw,44px);line-height:1.04;letter-spacing:-.02em;
+    margin:0 0 6px;color:var(--milk)
+  }
+  .sub{color:var(--muted);font-size:14px;max-width:60ch;margin:0}
+
+  /* ---- signature: cycle wave ---- */
+  .signature{
+    margin:30px 0 10px;background:var(--surface);border:1px solid var(--hair);
+    border-radius:var(--radius);padding:24px 22px 14px;position:relative;overflow:hidden
+  }
+  .sig-top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+  .phase-label{font-family:"Space Grotesk";font-weight:600;font-size:clamp(20px,3.6vw,30px);letter-spacing:-.01em;line-height:1.1}
+  .phase-meta{display:flex;gap:20px;align-items:baseline}
+  .metric{text-align:right}
+  .metric .k{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted-2)}
+  .metric .v{font-family:"IBM Plex Mono";font-size:24px;font-weight:500;font-variant-numeric:tabular-nums;display:block;margin-top:2px}
+  .dir{font-size:13px;font-family:"IBM Plex Mono"}
+  svg.wave{display:block;width:100%;height:auto;margin-top:4px}
+  .zone-row{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:2px}
+  .zone-row span{
+    font-family:"IBM Plex Mono";font-size:9.5px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--muted-2);text-align:center;padding-top:4px;border-top:1px solid var(--hair)
+  }
+
+  /* ---- interpretation ---- */
+  .read{
+    background:var(--surface-2);border:1px solid var(--hair);border-left:3px solid var(--s-mid);
+    border-radius:var(--radius);padding:18px 20px;margin:18px 0 28px
+  }
+  .read h2{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:600}
+  .read p{margin:0 0 10px;font-size:14.5px;color:var(--milk-dim)}
+  .read p:last-child{margin-bottom:0}
+  .read b{color:var(--milk);font-weight:600}
+
+  /* ---- section label ---- */
+  .section-label{
+    display:flex;align-items:center;gap:12px;margin:0 0 16px
+  }
+  .section-label .t{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  .section-label .line{flex:1;height:1px;background:var(--hair)}
+
+  /* ---- signal cards ---- */
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  @media(max-width:680px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:16px 16px 14px;position:relative}
+  .card .num{font-family:"IBM Plex Mono";font-size:11px;color:var(--muted-2);position:absolute;top:14px;right:16px}
+  .card h3{font-family:"Space Grotesk";font-weight:600;font-size:15px;margin:0 0 2px;letter-spacing:-.01em}
+  .card .src{font-size:11.5px;color:var(--muted-2);margin:0 0 12px}
+  .inputs{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:4px}
+  .field label{font-family:"IBM Plex Mono";font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .field input{
+    width:108px;background:var(--ink);border:1px solid var(--hair);color:var(--milk);
+    font-family:"IBM Plex Mono";font-size:15px;font-variant-numeric:tabular-nums;
+    padding:7px 9px;border-radius:var(--radius);outline:none
+  }
+  .field input:focus{border-color:var(--s-mid)}
+  .card-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:13px}
+  .chip{
+    font-family:"IBM Plex Mono";font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+    padding:4px 9px;border-radius:100px;color:var(--ink);font-weight:600;white-space:nowrap
+  }
+  .computed{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted)}
+  .note{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.45}
+
+  /* ---- controls / history ---- */
+  .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:26px 0 0}
+  button{
+    font-family:"IBM Plex Mono";font-size:12px;letter-spacing:.04em;cursor:pointer;
+    border-radius:var(--radius);padding:9px 15px;border:1px solid var(--hair);
+    background:var(--surface-2);color:var(--milk);transition:border-color .15s,background .15s
+  }
+  button:hover{border-color:var(--s-mid)}
+  button.primary{background:var(--s-mid);color:var(--ink);border-color:var(--s-mid);font-weight:600}
+  button.primary:hover{background:var(--s-warm);border-color:var(--s-warm)}
+  button.ghost:hover{border-color:var(--s-cold)}
+  .status{font-family:"IBM Plex Mono";font-size:12px;color:var(--muted);margin-left:auto}
+  .hist{margin-top:24px;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius);padding:18px 20px}
+  .hist h2{font-family:"IBM Plex Mono";font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:600}
+  .spark{display:flex;align-items:flex-end;gap:6px;height:60px;margin-bottom:8px}
+  .bar{flex:1;min-width:6px;border-radius:2px 2px 0 0;background:var(--s-mid);opacity:.85;position:relative}
+  .hist-empty{color:var(--muted-2);font-size:13px;font-family:"IBM Plex Mono"}
+  .hist-list{display:flex;flex-direction:column;gap:0;margin-top:6px}
+  .hist-row{display:flex;justify-content:space-between;font-family:"IBM Plex Mono";font-size:12px;color:var(--muted-2);padding:5px 0;border-top:1px solid var(--hair)}
+  .hist-row b{color:var(--milk-dim);font-weight:500}
+
+  .foot{margin-top:34px;color:var(--muted-2);font-size:11.5px;line-height:1.55;font-family:"IBM Plex Mono"}
+  .foot b{color:var(--muted)}
+  a{color:var(--s-cool)}
+  @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">EU Dairy Cycle Monitor · Southeast Europe desk</p>
+  <h1>Where the milk&#8209;price cycle stands</h1>
+  <p class="sub">Five leading signals, weighted into one read of the European raw&#8209;milk cycle &mdash; trough, turn, or recovery. The latest figures load automatically each time you open this page.</p>
+  <div id="dataStatus" style="margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px">
+    <span id="dataDot" style="width:8px;height:8px;border-radius:50%;background:var(--muted-2);display:inline-block"></span>
+    <span id="dataMsg">Loading latest data&hellip;</span>
+  </div>
+
+  <!-- SIGNATURE: cycle wave -->
+  <div class="signature">
+    <div class="sig-top">
+      <div>
+        <div class="phase-label" id="phaseLabel">&mdash;</div>
+        <div class="dir mono" id="dirText" style="color:var(--muted);margin-top:4px">awaiting input</div>
+      </div>
+      <div class="phase-meta">
+        <div class="metric">
+          <span class="k">Composite</span>
+          <span class="v mono" id="compositeVal">&mdash;</span>
+        </div>
+      </div>
+    </div>
+    <svg class="wave" id="waveSvg" viewBox="0 0 900 190" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="wgrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%"  stop-color="#4a7a9b"/>
+          <stop offset="50%" stop-color="#b8923c"/>
+          <stop offset="100%" stop-color="#c9683a"/>
+        </linearGradient>
+      </defs>
+      <path id="wavePath" fill="none" stroke="url(#wgrad)" stroke-width="2.5"/>
+      <line id="markerLine" stroke="var(--milk)" stroke-width="1" stroke-dasharray="3 4" opacity="0.35"/>
+      <circle id="markerDot" r="7" fill="var(--milk)" stroke="var(--ink)" stroke-width="2.5"/>
+    </svg>
+    <div class="zone-row">
+      <span>Trough</span><span>Bottoming</span><span>Turning</span><span>Early recovery</span><span>Recovery</span>
+    </div>
+  </div>
+
+  <!-- INTERPRETATION -->
+  <div class="read" id="readPanel">
+    <h2>Interpretation</h2>
+    <div id="readBody"><p>Enter the latest readings below to generate the interpretation.</p></div>
+  </div>
+
+  <!-- SIGNALS -->
+  <div class="section-label"><span class="t">The five signals</span><span class="line"></span></div>
+  <div class="grid" id="cardGrid"></div>
+
+  <div class="controls">
+    <button class="primary" id="saveBtn">Save this week</button>
+    <button id="refreshBtn">Refresh data</button>
+    <button id="exportBtn">Export report</button>
+    <button class="ghost" id="resetBtn">Reset to seed</button>
+    <span class="status" id="statusText"></span>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="hist">
+    <h2>Composite history</h2>
+    <div class="spark" id="spark"></div>
+    <div id="histList"></div>
+  </div>
+
+  <p class="foot">
+    <b>Sources to pull each week:</b> EU Milk Market Observatory (collection &amp; farm&#8209;gate), EU weekly dairy commodity prices (butter / SMP / cheese), Global Dairy Trade auction results, USDA/Eurostat slaughter data, and a feed&#8209;energy proxy (feed wheat / fertiliser / Brent). Figures shown are illustrative seeds from mid&#8209;2026 research &mdash; <b>verify before relying on them.</b> Saved readings stay on this device only. Not investment advice.
+  </p>
+</div>
+
+<script>
+// ============================================================================
+//  SET THIS ONCE before sending the file out.
+//  Paste the raw URL of your online data file (readings.json) between the quotes.
+//  Example (GitHub):
+//    https://raw.githubusercontent.com/YOURNAME/dairy-data/main/readings.json
+//  Leave it as-is to run in manual mode (no auto-fetch).
+// ============================================================================
+const DATA_URL = "https://raw.githubusercontent.com/MlekoAnaliza/EuroMleko/refs/heads/main/readings.json";
+
+// Pull the latest numbers from the online file. Falls back silently on failure.
+async function fetchLiveData(){
+  const msg=document.getElementById("dataMsg"), dot=document.getElementById("dataDot");
+  if(!DATA_URL || DATA_URL.indexOf("PASTE_YOUR")===0){
+    dot.style.background="var(--s-mid)";
+    msg.textContent="Manual mode — type figures below (no online file set).";
+    return false;
+  }
+  try{
+    const res=await fetch(DATA_URL+"?t="+Date.now(), {cache:"no-store"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const data=await res.json();
+    if(data && data.values){
+      INDICATORS.forEach(ind=>{
+        if(data.values[ind.id]){ state[ind.id]=Object.assign(state[ind.id]||{}, data.values[ind.id]); }
+      });
+      try{ await window.storage.set("dairy_tracker:livecache", JSON.stringify(data), false); }catch(e){}
+      const when=data.as_of||"unknown date";
+      const stale=(data.stale&&data.stale.length)?` · ${data.stale.length} figure(s) flagged stale`:"";
+      dot.style.background="var(--s-hot)";
+      msg.textContent=`Live data loaded — as of ${when}${stale}.`;
+      return true;
+    }
+    throw new Error("unexpected format");
+  }catch(e){
+    dot.style.background="var(--s-cold)";
+    msg.textContent="Couldn't reach the online file — showing last values. Check connection or the URL.";
+    try{ const c=await window.storage.get("dairy_tracker:livecache",false);
+      if(c&&c.value){ const data=JSON.parse(c.value);
+        INDICATORS.forEach(ind=>{ if(data.values[ind.id]) state[ind.id]=Object.assign(state[ind.id]||{}, data.values[ind.id]); });
+        msg.textContent="Offline — showing last data received ("+(data.as_of||"?")+").";
+      }
+    }catch(_){}
+    return false;
+  }
+}
+
+// ---------- model definition (mirrors the Python automation) ----------
+const INDICATORS = [
+  {
+    id:"collection", n:1, name:"EU milk collection, YoY",
+    src:"Milk Market Observatory · monthly", kind:"single", unit:"%",
+    fields:[{key:"yoy", label:"YoY %", seed:4.4}],
+    weight:1.4,
+    score:v=>{const x=v.yoy; if(x>=3)return -2; if(x>=1)return -1; if(x>-0.5)return 0; if(x>-2)return 1; return 2;},
+    desc:s=>({"-2":"collection still surging — surplus building hard","-1":"collection growing — surplus still accumulating",
+      "0":"collection roughly flat — supply balancing","1":"collection contracting — supply tightening","2":"collection falling sharply — clear tightening"})[s],
+    note:"The trigger. The rebound is confirmed when this turns negative year-on-year."
+  },
+  {
+    id:"butter", n:2, name:"EU butter spot", src:"EU weekly commodity prices · €/t", kind:"trend", unit:"€/t",
+    fields:[{key:"now", label:"Latest", seed:4000},{key:"prev", label:"4 wks ago", seed:4150}],
+    weight:1.0,
+    score:v=>scoreTrend(pct(v.now,v.prev)),
+    desc:s=>trendDesc(s,"butter"),
+    note:"Fat side is stock-heavy. Sustained firming signals butter inventory is clearing."
+  },
+  {
+    id:"smp", n:3, name:"EU skim milk powder spot", src:"EU weekly commodity prices · €/t", kind:"trend", unit:"€/t",
+    fields:[{key:"now", label:"Latest", seed:2650},{key:"prev", label:"4 wks ago", seed:2560}],
+    weight:1.0,
+    score:v=>scoreTrend(pct(v.now,v.prev)),
+    desc:s=>trendDesc(s,"SMP"),
+    note:"SMP led the early-2026 turn. With butter, the key gate on a broad farm-gate rebound."
+  },
+  {
+    id:"cheese", n:4, name:"EU cheese spot", src:"EU weekly commodity prices · €/t", kind:"trend", unit:"€/t",
+    fields:[{key:"now", label:"Latest", seed:3550},{key:"prev", label:"4 wks ago", seed:3650}],
+    weight:0.9,
+    score:v=>scoreTrend(pct(v.now,v.prev)),
+    desc:s=>trendDesc(s,"cheese"),
+    note:"The resilient, margin-driving segment. Firm cheese pulls processors' raw-milk bids up."
+  },
+  {
+    id:"slaughter", n:5, name:"Cow slaughter, YoY", src:"USDA / Eurostat · monthly", kind:"single", unit:"%",
+    fields:[{key:"yoy", label:"YoY %", seed:-3}],
+    weight:1.2,
+    score:v=>{const x=v.yoy; if(x>=5)return 2; if(x>=2)return 1; if(x>-2)return 0; if(x>-5)return -1; return -2;},
+    desc:s=>({"-2":"slaughter well down — herd correction stalled","-1":"slaughter soft — correction slow",
+      "0":"slaughter near normal","1":"slaughter rising — herd shrinking","2":"slaughter high — fast herd reduction"})[s],
+    note:"Low cull rates and scarce heifers prolong oversupply. A pickup means the correction is engaging."
+  },
+  {
+    id:"feed", n:6, name:"Feed / energy cost index", src:"Feed wheat · fertiliser · Brent proxy", kind:"trend", unit:"idx",
+    fields:[{key:"now", label:"Latest", seed:112},{key:"prev", label:"4 wks ago", seed:106}],
+    weight:0.6,
+    score:v=>{const c=pct(v.now,v.prev); if(c>=5)return 1; if(c<=-5)return -1; return 0;},
+    desc:s=>({"-1":"cheap inputs — oversupply sustained","0":"input costs steady","1":"input costs rising — squeezes margins, speeds correction"})[s],
+    note:"Two-sided: rising costs accelerate the supply cut (price-positive) but also dampen demand. Modest weight."
+  }
+];
+
+function pct(now,prev){ if(!prev||prev===0) return 0; return ((now-prev)/prev)*100; }
+function scoreTrend(c){ if(c<=-3)return -2; if(c<=-1)return -1; if(c<1)return 0; if(c<3)return 1; return 2; }
+function trendDesc(s,label){
+  return ({"-2":label+" falling fast","-1":label+" easing","0":label+" flat","1":label+" firming","2":label+" rallying"})[s];
+}
+const SIGNAL_COLORS={"-2":"--s-cold","-1":"--s-cool","0":"--s-mid","1":"--s-warm","2":"--s-hot"};
+const SIGNAL_WORD ={"-2":"Oversupply","-1":"Soft","0":"Turning","1":"Firming","2":"Recovery"};
+
+// ---------- state ----------
+let state={};
+const STORE_READINGS="dairy_tracker:readings";
+const STORE_HISTORY ="dairy_tracker:history";
+let lastComposite=null;
+
+function seedState(){
+  const s={};
+  INDICATORS.forEach(ind=>{ s[ind.id]={}; ind.fields.forEach(f=>s[ind.id][f.key]=f.seed); });
+  return s;
+}
+
+// ---------- compute ----------
+function compute(){
+  let wsum=0, w=0; const perInd=[];
+  INDICATORS.forEach(ind=>{
+    const v=state[ind.id];
+    const sc=ind.score(v);
+    perInd.push({ind, sc});
+    wsum+=sc*ind.weight; w+=ind.weight;
+  });
+  const composite=wsum/w;
+  return {composite, perInd};
+}
+function phaseOf(c){
+  if(c<=-1.2)return "Deep oversupply";
+  if(c<=-0.5)return "Oversupplied · bottoming";
+  if(c< 0.3) return "Balancing · turning point near";
+  if(c<=1.0) return "Tightening · early recovery";
+  return "Recovery · prices firming";
+}
+
+// ---------- render ----------
+function renderCards(){
+  const grid=document.getElementById("cardGrid"); grid.innerHTML="";
+  INDICATORS.forEach(ind=>{
+    const v=state[ind.id]; const sc=ind.score(v);
+    const card=document.createElement("div"); card.className="card";
+    let inputsHtml="";
+    ind.fields.forEach(f=>{
+      inputsHtml+=`<div class="field"><label>${f.label}</label>
+        <input type="number" step="any" data-ind="${ind.id}" data-key="${f.key}" value="${v[f.key]}"></div>`;
+    });
+    let computedHtml="";
+    if(ind.kind==="trend"){ const c=pct(v.now,v.prev); computedHtml=`<span class="computed">4wk ${c>=0?"+":""}${c.toFixed(1)}%</span>`; }
+    card.innerHTML=`
+      <span class="num mono">0${ind.n}</span>
+      <h3>${ind.name}</h3>
+      <p class="src">${ind.src}</p>
+      <div class="inputs">${inputsHtml}</div>
+      <div class="card-foot">
+        ${computedHtml||"<span></span>"}
+        <span class="chip" data-chip="${ind.id}"></span>
+      </div>
+      <p class="note">${ind.note}</p>`;
+    grid.appendChild(card);
+    const chip=card.querySelector(`[data-chip="${ind.id}"]`);
+    chip.textContent=SIGNAL_WORD[sc];
+    chip.style.background=`var(${SIGNAL_COLORS[sc]})`;
+  });
+  grid.querySelectorAll("input").forEach(inp=>{
+    inp.addEventListener("input",e=>{
+      const i=e.target.dataset.ind,k=e.target.dataset.key;
+      state[i][k]=parseFloat(e.target.value)||0;
+      saveReadings(); refresh(false);
+    });
+  });
+}
+
+function drawWave(markerPct){
+  const W=900,H=190,mid=H/2,amp=H/2-26;
+  let d="M0 "+(mid+amp*Math.cos(0)).toFixed(1);
+  for(let x=0;x<=W;x+=10){ const u=x/W; const y=mid+amp*Math.cos(u*Math.PI); d+=` L${x} ${y.toFixed(1)}`; }
+  document.getElementById("wavePath").setAttribute("d",d);
+  const u=markerPct/100, mx=u*W, my=mid+amp*Math.cos(u*Math.PI);
+  const dot=document.getElementById("markerDot"); dot.setAttribute("cx",mx); dot.setAttribute("cy",my);
+  const ln=document.getElementById("markerLine"); ln.setAttribute("x1",mx); ln.setAttribute("x2",mx); ln.setAttribute("y1",my); ln.setAttribute("y2",H);
+}
+
+function buildNarrative(perInd, composite){
+  const get=id=>perInd.find(p=>p.ind.id===id);
+  const col=get("collection"), sl=get("slaughter"), bu=get("butter"), sm=get("smp"), ch=get("cheese"), fe=get("feed");
+  const supplyScore=(col.sc*1.4+sl.sc*1.2)/2.6;
+  const commodityScore=(bu.sc+sm.sc+ch.sc)/3;
+  let p1;
+  if(supplyScore<=-0.6) p1=`<b>Supply is still the binding constraint.</b> ${cap(col.ind.desc(String(col.sc)))}, and ${sl.ind.desc(String(sl.sc))} &mdash; the herd correction that ends the glut hasn't engaged yet.`;
+  else if(supplyScore<0.4) p1=`<b>The supply side is starting to balance.</b> ${cap(col.ind.desc(String(col.sc)))}; ${sl.ind.desc(String(sl.sc))}. This is the early machinery of a turn.`;
+  else p1=`<b>The supply correction is underway.</b> ${cap(col.ind.desc(String(col.sc)))} and ${sl.ind.desc(String(sl.sc))} &mdash; the classic trigger for a farm-gate rebound.`;
+
+  let p2=`On the commodity side, ${bu.ind.desc(String(bu.sc))}, ${sm.ind.desc(String(sm.sc))}, ${ch.ind.desc(String(ch.sc))}. `;
+  if(commodityScore>=0.7) p2+=`Broad firmness here should lift farm-gate prices with the usual 3&ndash;6 month lag.`;
+  else if(commodityScore>=0) p2+=`The picture is mixed &mdash; watch whether butter and SMP can clear inventory together, which is the gate on a broad rebound.`;
+  else p2+=`Commodities remain heavy, so any farm-gate relief is capped for now.`;
+  p2+=` ${cap(fe.ind.desc(String(fe.sc)))}.`;
+
+  let p3=`Composite of <b>${composite.toFixed(2)}</b> places the cycle at <b>${phaseOf(composite)}</b>. `;
+  if(composite<=-0.5) p3+=`Treat current raw-milk prices as near-trough but not yet turning &mdash; hold off reading a rebound until collection rolls over.`;
+  else if(composite<0.3) p3+=`The inflection looks close: the next one to two monthly collection prints are the ones to watch.`;
+  else if(composite<=1.0) p3+=`Early recovery signals are live; farm-gate strengthening typically follows over the next one to two quarters.`;
+  else p3+=`Recovery is established &mdash; expect farm-gate prices to keep firming as the lag plays through.`;
+
+  return `<p>${p1}</p><p>${p2}</p><p>${p3}</p>`;
+}
+function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
+
+function refresh(animateMarker){
+  const {composite, perInd}=compute();
+  document.getElementById("compositeVal").textContent=(composite>=0?"+":"")+composite.toFixed(2);
+  document.getElementById("phaseLabel").textContent=phaseOf(composite);
+  // marker position: composite -2..+2  ->  6%..94%
+  const pctPos=Math.max(4,Math.min(96,((composite+2)/4)*100));
+  drawWave(pctPos);
+  // accent colour by phase
+  let accent= composite<=-1.2?"--s-cold":composite<=-0.5?"--s-cool":composite<0.3?"--s-mid":composite<=1.0?"--s-warm":"--s-hot";
+  document.getElementById("readPanel").style.borderLeftColor=`var(${accent})`;
+  document.getElementById("readBody").innerHTML=buildNarrative(perInd, composite);
+  // direction vs last saved
+  const dir=document.getElementById("dirText");
+  if(lastComposite===null){ dir.textContent="no prior reading saved"; dir.style.color="var(--muted)"; }
+  else{
+    const diff=composite-lastComposite;
+    if(Math.abs(diff)<0.04){ dir.textContent="◆ unchanged vs last save"; dir.style.color="var(--muted)"; }
+    else if(diff>0){ dir.textContent="▲ "+diff.toFixed(2)+" vs last save — firming"; dir.style.color="var(--s-warm)"; }
+    else { dir.textContent="▼ "+diff.toFixed(2)+" vs last save — softening"; dir.style.color="var(--s-cold)"; }
+  }
+  renderChips();
+}
+function renderChips(){
+  INDICATORS.forEach(ind=>{
+    const sc=ind.score(state[ind.id]);
+    const chip=document.querySelector(`[data-chip="${ind.id}"]`);
+    if(chip){ chip.textContent=SIGNAL_WORD[sc]; chip.style.background=`var(${SIGNAL_COLORS[sc]})`; }
+  });
+}
+
+// ---------- persistence ----------
+async function saveReadings(){
+  try{ await window.storage.set(STORE_READINGS, JSON.stringify(state), false); }catch(e){}
+}
+async function loadReadings(){
+  try{ const r=await window.storage.get(STORE_READINGS,false); if(r&&r.value) state=JSON.parse(r.value); }
+  catch(e){ /* not set yet */ }
+  if(!state||!Object.keys(state).length) state=seedState();
+  // backfill any new fields
+  INDICATORS.forEach(ind=>{ if(!state[ind.id])state[ind.id]={}; ind.fields.forEach(f=>{ if(state[ind.id][f.key]===undefined)state[ind.id][f.key]=f.seed; }); });
+}
+async function loadHistory(){
+  try{ const r=await window.storage.get(STORE_HISTORY,false); return r&&r.value?JSON.parse(r.value):[]; }
+  catch(e){ return []; }
+}
+async function saveHistory(h){ try{ await window.storage.set(STORE_HISTORY, JSON.stringify(h), false); }catch(e){} }
+
+async function renderHistory(){
+  const h=await loadHistory();
+  const spark=document.getElementById("spark"), list=document.getElementById("histList");
+  if(!h.length){ spark.innerHTML=""; list.innerHTML='<p class="hist-empty">No saved weeks yet. Use “Save this week”.</p>'; lastComposite=null; return; }
+  lastComposite=h[h.length-1].composite;
+  // sparkline: map composite -2..+2 to 4..100% height
+  spark.innerHTML="";
+  h.slice(-16).forEach(e=>{
+    const bar=document.createElement("div"); bar.className="bar";
+    const ht=Math.max(6,((e.composite+2)/4)*100);
+    bar.style.height=ht+"%";
+    const c=e.composite<=-1.2?"--s-cold":e.composite<=-0.5?"--s-cool":e.composite<0.3?"--s-mid":e.composite<=1.0?"--s-warm":"--s-hot";
+    bar.style.background=`var(${c})`;
+    bar.title=`${e.date}: ${e.composite>=0?"+":""}${e.composite.toFixed(2)}`;
+    spark.appendChild(bar);
+  });
+  list.className="hist-list"; list.innerHTML="";
+  h.slice(-8).reverse().forEach(e=>{
+    const row=document.createElement("div"); row.className="hist-row";
+    row.innerHTML=`<span>${e.date}</span><b>${e.composite>=0?"+":""}${e.composite.toFixed(2)} · ${e.phase}</b>`;
+    list.appendChild(row);
+  });
+}
+
+// ---------- actions ----------
+document.getElementById("saveBtn").addEventListener("click", async ()=>{
+  const {composite}=compute();
+  const h=await loadHistory();
+  const date=new Date().toISOString().slice(0,10);
+  h.push({date, composite, phase:phaseOf(composite), values:JSON.parse(JSON.stringify(state))});
+  await saveHistory(h);
+  await renderHistory();
+  refresh(false);
+  flash("saved "+date);
+});
+document.getElementById("resetBtn").addEventListener("click", async ()=>{
+  state=seedState(); await saveReadings();
+  renderCards(); refresh(false); flash("reset to seed values");
+});
+function flash(msg){ const s=document.getElementById("statusText"); s.textContent=msg; setTimeout(()=>{if(s.textContent===msg)s.textContent="";},2600); }
+
+// ---------- export a clean, printable / save-as-PDF report ----------
+document.getElementById("exportBtn").addEventListener("click", ()=>{
+  const {composite, perInd}=compute();
+  const date=new Date().toISOString().slice(0,10);
+  const phase=phaseOf(composite);
+  const accent= composite<=-1.2?"#4a7a9b":composite<=-0.5?"#5b9b9a":composite<0.3?"#b8923c":composite<=1.0?"#c98a44":"#c9683a";
+  const hex={"-2":"#4a7a9b","-1":"#5b9b9a","0":"#b8923c","1":"#c98a44","2":"#c9683a"};
+  const word={"-2":"Oversupply","-1":"Soft","0":"Turning","1":"Firming","2":"Recovery"};
+
+  let rowsHtml="";
+  perInd.forEach(p=>{
+    const v=state[p.ind.id]; let val;
+    if(p.ind.kind==="trend"){ const c=pct(v.now,v.prev); val=`€${(+v.now).toLocaleString()} (${c>=0?"+":""}${c.toFixed(1)}% 4wk)`; }
+    else { val=`${(+v.yoy>=0?"+":"")}${(+v.yoy).toFixed(1)}% YoY`; }
+    rowsHtml+=`<tr>
+      <td style="padding:9px 10px;border-bottom:1px solid #e6e2d8;font-size:14px;color:#1c2027">${p.ind.name}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid #e6e2d8;font-size:13px;color:#5e6770;font-family:monospace">${val}</td>
+      <td style="padding:9px 10px;border-bottom:1px solid #e6e2d8;text-align:right">
+        <span style="background:${hex[p.sc]};color:#fff;font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px;font-family:monospace">${word[p.sc]}</span>
+      </td></tr>`;
+  });
+  // narrative without HTML <b> tags from buildNarrative
+  const narr=buildNarrative(perInd, composite).replace(/<\/?b>/g,"");
+  const paras = narr; // already <p>...</p> blocks
+
+  const doc=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Dairy cycle report ${date}</title>
+  <style>
+    @page{margin:18mm}
+    body{font-family:Helvetica,Arial,sans-serif;color:#1c2027;max-width:680px;margin:0 auto;padding:24px}
+    .eyebrow{font-family:monospace;font-size:11px;letter-spacing:2px;color:#8b95a1;text-transform:uppercase;margin:0 0 4px}
+    h1{font-size:26px;margin:0 0 2px}
+    .meta{color:#5e6770;font-size:14px;margin:0 0 20px}
+    .read{background:#f7f5ef;border:1px solid #e6e2d8;border-left:4px solid ${accent};border-radius:4px;padding:16px 20px;margin-bottom:20px}
+    .read .lab{font-family:monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b95a1;margin:0 0 10px}
+    .read p{margin:0 0 11px;color:#33383f;font-size:14.5px;line-height:1.55}
+    .read p:last-child{margin:0}
+    table{width:100%;border-collapse:collapse;border:1px solid #e6e2d8;border-radius:4px;overflow:hidden}
+    th{text-align:left;padding:11px 10px;font-family:monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#8b95a1;border-bottom:1px solid #e6e2d8}
+    .foot{font-family:monospace;font-size:11px;color:#a0a8b0;margin:18px 0 0;line-height:1.6}
+    .btn{display:inline-block;margin:0 0 18px;padding:9px 16px;background:${accent};color:#fff;border:none;border-radius:4px;font-size:13px;cursor:pointer}
+    @media print{.btn{display:none}}
+  </style></head><body>
+    <button class="btn" onclick="window.print()">Save as PDF / print</button>
+    <p class="eyebrow">EU Dairy Cycle Monitor</p>
+    <h1>${phase}</h1>
+    <p class="meta">${date} &nbsp;·&nbsp; composite <b style="color:${accent}">${composite>=0?"+":""}${composite.toFixed(2)}</b></p>
+    <div class="read"><p class="lab">Interpretation</p>${paras}</div>
+    <table><tr><th colspan="3">The five signals</th></tr>${rowsHtml}</table>
+    <p class="foot">Composite runs &minus;2 (deep oversupply) to +2 (recovery). Verify figures against primary sources. Not investment advice.</p>
+  </body></html>`;
+
+  const w=window.open("","_blank");
+  if(!w){ flash("allow pop-ups to export"); return; }
+  w.document.write(doc); w.document.close();
+  flash("report opened in new tab");
+});
+
+
+// ---------- init ----------
+(async function(){
+  await loadReadings();          // local seeds / last manual edits
+  await fetchLiveData();         // overlay the latest online figures if available
+  await renderHistory();         // sets lastComposite
+  renderCards();
+  refresh(false);
+})();
+
+document.getElementById("refreshBtn").addEventListener("click", async ()=>{
+  await fetchLiveData();
+  renderCards();
+  refresh(false);
+  flash("data refreshed");
+});
+</script>
+</body>
+</html>

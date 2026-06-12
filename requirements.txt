@@ -1,0 +1,5 @@
+# Core model needs only the Python standard library — no install required.
+# These are ONLY for the optional auto-fetch adapters in fetch.py:
+requests>=2.31
+# openpyxl>=3.1      # uncomment if you parse the MMO XLSX files
+# pdfplumber>=0.11   # uncomment if you parse the MMO PDF files
