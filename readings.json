@@ -1,5 +1,4 @@
-
-
+{
   "as_of": "2026-06-23",
   "values": {
     "collection": { "yoy": 3.0 },
@@ -9,13 +8,13 @@
     "slaughter":  { "yoy": -3.0 },
     "feed":       { "now": 104,  "prev": 115 }
   },
-  "stale": []
+  "stale": [],
   "notes": [
     "As of 23 June 2026. Values are latest reliably available from public sources.",
     "collection.yoy: +3.0% (April, slowing from March +4%) — Eurostat API dataset apro_mk_colm.",
-    "butter/smp/cheese: EU spot to 18 Jun (butter 392, SMP 274, cheddar 314 EUR/100kg). Stable feed: Global Dairy Trade auction indices (twice-monthly).",
+    "butter/smp/cheese: EU spot to 18 Jun (butter 392, SMP 274, cheddar 314 EUR/100kg).",
     "slaughter.yoy: approx -3% (culling delayed) — Eurostat API dataset apro_mt_pheadm.",
     "feed: easing ~10% over 4wk as Brent fell toward 77 USD (Hormuz reopening) — FRED/EIA series.",
-    "NOTE: global GDT auction (mid-June) fell sharply (WMP -3.1%, SMP -3.6%); the EU-specific read (-0.92) may deepen if the EU follows."
+    "NOTE: global GDT auction (mid-June) fell sharply; the EU read (-0.92) may deepen if the EU follows."
   ]
 }
