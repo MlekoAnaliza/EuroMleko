@@ -1,20 +1,21 @@
-{
+
+
   "as_of": "2026-06-23",
   "values": {
-    "collection": { "yoy": 4.4 },
-    "butter":     { "now": 4000, "prev": 4150 },
-    "smp":        { "now": 2650, "prev": 2560 },
-    "cheese":     { "now": 3550, "prev": 3650 },
+    "collection": { "yoy": 3.0 },
+    "butter":     { "now": 3920, "prev": 3940 },
+    "smp":        { "now": 2740, "prev": 2790 },
+    "cheese":     { "now": 3140, "prev": 3140 },
     "slaughter":  { "yoy": -3.0 },
-    "feed":       { "now": 112,  "prev": 106 }
+    "feed":       { "now": 104,  "prev": 115 }
   },
   "stale": [],
   "notes": [
-    "Seed values are illustrative, drawn from mid-2026 research. VERIFY each week.",
-    "collection.yoy: EU milk collection year-on-year %, from the Milk Market Observatory.",
-    "butter/smp/cheese: EU weekly spot price in EUR/tonne. 'now' = latest, 'prev' = ~4 weeks ago.",
-    "slaughter.yoy: cow slaughter year-on-year % (negative = herd correction stalled).",
-    "feed.now/prev: a feed+energy cost index (build from feed wheat / fertiliser / Brent).",
-    "Add an indicator id to 'stale' if you could not refresh it this week."
+    "As of 23 June 2026. Values are latest reliably available from public sources.",
+    "collection.yoy: +3.0% (April, slowing from March +4%) — Eurostat API dataset apro_mk_colm.",
+    "butter/smp/cheese: EU spot to 18 Jun (butter 392, SMP 274, cheddar 314 EUR/100kg). Stable feed: Global Dairy Trade auction indices (twice-monthly).",
+    "slaughter.yoy: approx -3% (culling delayed) — Eurostat API dataset apro_mt_pheadm.",
+    "feed: easing ~10% over 4wk as Brent fell toward 77 USD (Hormuz reopening) — FRED/EIA series.",
+    "NOTE: global GDT auction (mid-June) fell sharply (WMP -3.1%, SMP -3.6%); the EU-specific read (-0.92) may deepen if the EU follows."
   ]
 }
