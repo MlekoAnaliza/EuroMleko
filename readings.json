@@ -9,7 +9,7 @@
     "slaughter":  { "yoy": -3.0 },
     "feed":       { "now": 104,  "prev": 115 }
   },
-  "stale": [],
+  "stale": []
   "notes": [
     "As of 23 June 2026. Values are latest reliably available from public sources.",
     "collection.yoy: +3.0% (April, slowing from March +4%) — Eurostat API dataset apro_mk_colm.",
