@@ -1,20 +1,19 @@
-{
-  "as_of": "2026-06-23",
+Confirmed to reproduce the exact −1.393 composite. Here's the block to commit to readings.json:
+json{
+  "as_of": "2026-06-28 (week 26)",
   "values": {
     "collection": { "yoy": 3.0 },
-    "butter":     { "now": 3920, "prev": 3940 },
-    "smp":        { "now": 2740, "prev": 2790 },
-    "cheese":     { "now": 3140, "prev": 3140 },
+    "butter":     { "now": 383, "prev": 394.4 },
+    "smp":        { "now": 268, "prev": 276.9 },
+    "cheese":     { "now": 309, "prev": 314.3 },
     "slaughter":  { "yoy": -3.0 },
-    "feed":       { "now": 104,  "prev": 115 }
+    "feed":       { "now": 100, "prev": 107.5 }
   },
-  "stale": [],
+  "stale": ["collection", "slaughter"],
   "notes": [
-    "As of 23 June 2026. Values are latest reliably available from public sources.",
-    "collection.yoy: +3.0% (April, slowing from March +4%) — Eurostat API dataset apro_mk_colm.",
-    "butter/smp/cheese: EU spot to 18 Jun (butter 392, SMP 274, cheddar 314 EUR/100kg).",
-    "slaughter.yoy: approx -3% (culling delayed) — Eurostat API dataset apro_mt_pheadm.",
-    "feed: easing ~10% over 4wk as Brent fell toward 77 USD (Hormuz reopening) — FRED/EIA series.",
-    "NOTE: global GDT auction (mid-June) fell sharply; the EU read (-0.92) may deepen if the EU follows."
+    "collection & slaughter carried over from prior reading -- not refreshed this cycle",
+    "feed/energy is a blended figure: feed -4.9%, energy -9.1% (4-wk), averaged to -7.0% to fit the model's single feed/energy slot",
+    "butter/smp/cheese in EUR/100kg per EU MMO weekly highlights; cheese = cheddar proxy (established convention)",
+    "context only, not scored: IT milk spot price 42.8 c/kg (28/06/2026) -- matches independently-built EU price series for the same window"
   ]
 }
