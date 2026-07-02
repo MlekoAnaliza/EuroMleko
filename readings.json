@@ -1,5 +1,4 @@
-Confirmed to reproduce the exact −1.393 composite. Here's the block to commit to readings.json:
-json{
+{
   "as_of": "2026-06-28 (week 26)",
   "values": {
     "collection": { "yoy": 3.0 },
